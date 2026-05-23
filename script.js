@@ -10,12 +10,18 @@ const hiraganaSet = [
 
 let shuffledSet = [];
 let currentIndex = 0;
-let timeLeft = 10;
+let timeLeft = 60;
 let timerInterval = null;
 let model, webcam, labelContainer, maxPredictions;
 let modelURL = 'https://teachablemachine.withgoogle.com/models/2dsWbG2qE/';
 
 let mirrorCanvas, mirrorCtx;
+
+// Scoring system variables
+let points = 0;
+let confidenceTimer = 0;
+let lastConfidence = 0;
+let gameActive = true;
 
 function shuffleArray(array) {
     const shuffled = [...array];
@@ -89,7 +95,7 @@ async function loop() {
 }
 
 async function predict() {
-    if (!model || !mirrorCanvas) return;
+    if (!model || !mirrorCanvas || !gameActive) return;
 
     const prediction = await model.predict(mirrorCanvas);
 
@@ -101,8 +107,25 @@ async function predict() {
         }
     }
 
-    const confidence = (best.probability * 100).toFixed(1);
-    console.log(`Herkend: ${best.className} (${confidence}%)`);
+    const confidence = best.probability * 100;
+    console.log(`Herkend: ${best.className} (${confidence.toFixed(1)}%)`);
+
+    // Track confidence >= 50% for 2 seconds
+    if (confidence >= 50) {
+        if (lastConfidence >= 50) {
+            confidenceTimer += 16; // Approximately 1 frame ~16ms
+            if (confidenceTimer >= 2000) { // 2 seconds
+                points++;
+                updateScoreDisplay();
+                confidenceTimer = 0; // Reset to prevent multiple points from same pose
+            }
+        } else {
+            confidenceTimer = 0;
+        }
+    } else {
+        confidenceTimer = 0;
+    }
+    lastConfidence = confidence;
 
     // Zoek het bijbehorende hiragana karakter
     const match = hiraganaSet.find(h => h.romaji === best.className);
@@ -113,7 +136,7 @@ async function predict() {
         <p style="margin:0 0 8px 0; font-size: 14px; color: #555;">Herkend karakter:</p>
         <div style="font-size: 80px; line-height: 1; text-align: center;">${hiraganaChar}</div>
         <div style="text-align: center; font-size: 18px; margin-top: 8px;">${best.className}</div>
-        <div style="text-align: center; font-size: 14px; color: #777; margin-top: 4px;">${confidence}% zeker</div>
+        <div style="text-align: center; font-size: 14px; color: ${confidence >= 50 ? '#2d6a2d' : '#777'}; margin-top: 4px; font-weight: ${confidence >= 50 ? 'bold' : 'normal'}">${confidence.toFixed(1)}% zeker</div>
     `;
 }
 
@@ -132,14 +155,14 @@ function displayCharacter() {
 
 function startTimer() {
     if (timerInterval) clearInterval(timerInterval);
-    timeLeft = 10;
+    timeLeft = 60;
     updateTimerDisplay();
     timerInterval = setInterval(() => {
         timeLeft--;
         updateTimerDisplay();
         if (timeLeft <= 0) {
             clearInterval(timerInterval);
-            nextCharacter();
+            endGame();
         }
     }, 1000);
 }
@@ -148,6 +171,38 @@ function updateTimerDisplay() {
     const el = document.querySelector('.time');
     el.innerHTML = `Tijd: ${timeLeft}s`;
     el.style.background = timeLeft <= 3 ? '#8b3a3a' : '#6a2c2c';
+}
+
+function updateScoreDisplay() {
+    const el = document.querySelector('.score');
+    el.innerHTML = `Punten: ${points}`;
+}
+
+function endGame() {
+    gameActive = false;
+    saveScore();
+    
+    const finalScore = points;
+    const previousScores = JSON.parse(localStorage.getItem('hiraganaScores')) || [];
+    const totalAttempts = previousScores.length + 1;
+    const averageScore = previousScores.length > 0 
+        ? (previousScores.reduce((a, b) => a + b, 0) / previousScores.length).toFixed(1)
+        : finalScore;
+
+    document.querySelector('.prompt').innerHTML = `
+        <h2 style="font-size: 36px; margin-bottom: 20px;">🎉 Spel Voorbij! 🎉</h2>
+        <p style="font-size: 24px; margin: 15px 0;">Jouw Score: <strong>${finalScore}</strong></p>
+        <p style="font-size: 16px; margin: 10px 0;">Pogingen: ${totalAttempts}</p>
+        <p style="font-size: 16px; margin: 10px 0;">Gemiddelde Score: ${averageScore}</p>
+    `;
+    
+    document.querySelector('.answer-box').innerHTML = '<p style="color: #666;">Ververs de pagina om opnieuw te spelen.</p>';
+}
+
+function saveScore() {
+    const scores = JSON.parse(localStorage.getItem('hiraganaScores')) || [];
+    scores.push(points);
+    localStorage.setItem('hiraganaScores', JSON.stringify(scores));
 }
 
 function nextCharacter() {
