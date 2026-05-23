@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hiragana trainer</title>
+<link rel="stylesheet" href="style.css">
+
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Hiragana trainer</h1>
+
+    <div class="prompt">
+        Toon het karakter voor:
+    </div>
+
+    <div class="main">
+
+        <div class="camera-section">
+            <p>jouw camera</p>
+            <div class="camera-box"></div>
+        </div>
+
+        <div class="side-section">
+
+            <div class="time">Tijd:</div>
+
+            <div class="answer-box">
+                <p>jouw antwoord:</p>
+            </div>
+
+            <button class="next-btn">Volgende</button>
+            <button class="toggle-input-btn" style="margin-top: 10px; padding: 8px 12px; background: #4a4a4a; color: white; border: none; border-radius: 8px; cursor: pointer;">🖥️ Scherm gebruiken</button>
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+<script src="teachablemachine-image.min.js"></script>
+<script src="script.js"></script>
+
+</html>
