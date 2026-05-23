@@ -181,29 +181,70 @@ function updateScoreDisplay() {
 
 function endGame() {
     gameActive = false;
-    saveScore();
     
     const finalScore = points;
-    const previousScores = JSON.parse(localStorage.getItem('hiraganaScores')) || [];
-    const totalAttempts = previousScores.length + 1;
-    const averageScore = previousScores.length > 0 
-        ? (previousScores.reduce((a, b) => a + b, 0) / previousScores.length).toFixed(1)
-        : finalScore;
-
-    document.querySelector('.prompt').innerHTML = `
-        <h2 style="font-size: 36px; margin-bottom: 20px;">🎉 Spel Voorbij! 🎉</h2>
-        <p style="font-size: 24px; margin: 15px 0;">Jouw Score: <strong>${finalScore}</strong></p>
-        <p style="font-size: 16px; margin: 10px 0;">Pogingen: ${totalAttempts}</p>
-        <p style="font-size: 16px; margin: 10px 0;">Gemiddelde Score: ${averageScore}</p>
-    `;
+    const playerName = prompt('Voer je naam in om je score op te slaan:');
     
-    document.querySelector('.answer-box').innerHTML = '<p style="color: #666;">Ververs de pagina om opnieuw te spelen.</p>';
+    if (playerName === null) return; // User cancelled
+    
+    saveScore(playerName || 'Anoniem');
+    
+    displayFinalResults(finalScore);
 }
 
-function saveScore() {
+function saveScore(name) {
     const scores = JSON.parse(localStorage.getItem('hiraganaScores')) || [];
-    scores.push(points);
+    scores.push({
+        name: name,
+        score: points,
+        date: new Date().toLocaleDateString('nl-NL')
+    });
     localStorage.setItem('hiraganaScores', JSON.stringify(scores));
+}
+
+function displayFinalResults(finalScore) {
+    const allScores = JSON.parse(localStorage.getItem('hiraganaScores')) || [];
+    
+    let scoresHTML = '<h3 style="font-size: 20px; margin-bottom: 15px; color: #333;">Alle Scores:</h3>';
+    scoresHTML += '<div style="max-height: 300px; overflow-y: auto; background: #f0f0f0; padding: 10px; border-radius: 8px;">';
+    
+    if (allScores.length === 0) {
+        scoresHTML += '<p style="color: #666;">Geen scores opgeslagen.</p>';
+    } else {
+        scoresHTML += '<table style="width: 100%; border-collapse: collapse;">';
+        scoresHTML += '<tr style="background: #d6d6d6; font-weight: bold;"><td style="padding: 8px; border-bottom: 1px solid #999;">Naam</td><td style="padding: 8px; border-bottom: 1px solid #999; text-align: center;">Score</td><td style="padding: 8px; border-bottom: 1px solid #999; text-align: center;">Datum</td></tr>';
+        
+        allScores.slice().reverse().forEach((entry, index) => {
+            const bgColor = index % 2 === 0 ? '#fff' : '#efefef';
+            scoresHTML += `<tr style="background: ${bgColor};"><td style="padding: 8px; border-bottom: 1px solid #ddd;">${entry.name}</td><td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">${entry.score}</td><td style="padding: 8px; border-bottom: 1px solid #ddd; text-align: center;">${entry.date}</td></tr>`;
+        });
+        
+        scoresHTML += '</table>';
+    }
+    
+    scoresHTML += '</div>';
+    
+    document.querySelector('.prompt').innerHTML = `
+        <h2 style="font-size: 36px; margin-bottom: 20px;">🎉 Spel Voorbij! 🎉</h2>
+        <p style="font-size: 24px; margin: 15px 0; color: #2d6a2d;">Jouw Score: <strong>${finalScore}</strong></p>
+        ${scoresHTML}
+    `;
+    
+    document.querySelector('.answer-box').innerHTML = `
+        <p style="color: #666; text-align: center; padding: 20px;">Klik op "Volgende" om opnieuw te spelen</p>
+    `;
+}
+
+function resetGame() {
+    points = 0;
+    matchTimer = 0;
+    currentRequestedRomaji = '';
+    gameActive = true;
+    shuffledSet = shuffleArray(hiraganaSet);
+    currentIndex = 0;
+    updateScoreDisplay();
+    displayCharacter();
+    startTimer();
 }
 
 function nextCharacter() {
@@ -233,6 +274,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     document.querySelector('.next-btn').addEventListener('click', function () {
         if (gameActive) {
             nextCharacter();
+        } else {
+            resetGame();
         }
     });
 });
