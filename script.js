@@ -48,12 +48,31 @@ async function startCamera() {
     cameraBox.appendChild(video);
 
     try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        // Get all video input devices
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(device => device.kind === 'videoinput');
+        
+        // Use the first real camera (usually the default system camera)
+        let constraints = { video: { facingMode: 'user' } };
+        
+        if (videoDevices.length > 0) {
+            // Use the first video device's ID for the default system camera
+            constraints = { video: { deviceId: { exact: videoDevices[0].deviceId }, facingMode: 'user' } };
+        }
+        
+        const stream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = stream;
         console.log('camera gestart');
     } catch (err) {
         console.error('camera fout:', err);
-        cameraBox.innerHTML = '<p style="color:red;padding:1rem;">Camera geblokkeerd: ' + err.message + '</p>';
+        // Fallback to any available camera if the specific one fails
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            video.srcObject = stream;
+            console.log('camera gestart (fallback)');
+        } catch (fallbackErr) {
+            cameraBox.innerHTML = '<p style="color:red;padding:1rem;">Camera geblokkeerd: ' + fallbackErr.message + '</p>';
+        }
     }
 }
 
