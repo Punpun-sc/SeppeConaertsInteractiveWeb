@@ -163,6 +163,7 @@ function initializeCharacter() {
     shuffledSet = shuffleArray(hiraganaSet);
     currentIndex = 0;
     displayCharacter();
+    document.querySelector('.next-btn').disabled = true;
     startTimer();
 }
 
@@ -250,8 +251,10 @@ function displayFinalResults(finalScore) {
     `;
     
     document.querySelector('.answer-box').innerHTML = `
-        <p style="color: #666; text-align: center; padding: 20px;">Klik op "Volgende" om opnieuw te spelen</p>
+        <p style="color: #666; text-align: center; padding: 20px;">Klik op "Opnieuw spelen" om opnieuw te spelen</p>
     `;
+    
+    document.querySelector('.next-btn').disabled = false;
 }
 
 function resetGame() {
@@ -291,9 +294,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     waitForTmImage();
 
     document.querySelector('.next-btn').addEventListener('click', function () {
-        if (gameActive) {
-            nextCharacter();
-        } else {
+        if (!gameActive) {
             resetGame();
         }
     });

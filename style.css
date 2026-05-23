@@ -118,6 +118,16 @@ h1{
     background:#3a5b8a;
 }
 
+.next-btn:disabled{
+    background:#9ca3a8;
+    cursor:not-allowed;
+    opacity:0.6;
+}
+
+.next-btn:disabled:hover{
+    background:#9ca3a8;
+}
+
 @media (min-width:768px){
     .main{
         flex-direction:row;
