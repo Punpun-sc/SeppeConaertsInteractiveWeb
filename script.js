@@ -19,8 +19,8 @@ let mirrorCanvas, mirrorCtx;
 
 // Scoring system variables
 let points = 0;
-let confidenceTimer = 0;
-let lastConfidence = 0;
+let matchTimer = 0;
+let currentRequestedRomaji = '';
 let gameActive = true;
 
 function shuffleArray(array) {
@@ -110,33 +110,33 @@ async function predict() {
     const confidence = best.probability * 100;
     console.log(`Herkend: ${best.className} (${confidence.toFixed(1)}%)`);
 
-    // Track confidence >= 50% for 2 seconds
-    if (confidence >= 50) {
-        if (lastConfidence >= 50) {
-            confidenceTimer += 16; // Approximately 1 frame ~16ms
-            if (confidenceTimer >= 2000) { // 2 seconds
-                points++;
-                updateScoreDisplay();
-                confidenceTimer = 0; // Reset to prevent multiple points from same pose
-            }
-        } else {
-            confidenceTimer = 0;
+    // Check if recognized character matches requested character and confidence >= 50%
+    const isCorrectMatch = best.className === currentRequestedRomaji && confidence >= 50;
+    
+    if (isCorrectMatch) {
+        matchTimer += 16; // Approximately 1 frame ~16ms
+        if (matchTimer >= 2000) { // 2 seconds
+            points++;
+            updateScoreDisplay();
+            matchTimer = 0;
+            nextCharacter(); // Show next character
         }
     } else {
-        confidenceTimer = 0;
+        matchTimer = 0;
     }
-    lastConfidence = confidence;
 
     // Zoek het bijbehorende hiragana karakter
     const match = hiraganaSet.find(h => h.romaji === best.className);
     const hiraganaChar = match ? match.char : '?';
 
     // Toon in answer-box
+    const isMatching = best.className === currentRequestedRomaji;
     labelContainer.innerHTML = `
         <p style="margin:0 0 8px 0; font-size: 14px; color: #555;">Herkend karakter:</p>
         <div style="font-size: 80px; line-height: 1; text-align: center;">${hiraganaChar}</div>
         <div style="text-align: center; font-size: 18px; margin-top: 8px;">${best.className}</div>
-        <div style="text-align: center; font-size: 14px; color: ${confidence >= 50 ? '#2d6a2d' : '#777'}; margin-top: 4px; font-weight: ${confidence >= 50 ? 'bold' : 'normal'}">${confidence.toFixed(1)}% zeker</div>
+        <div style="text-align: center; font-size: 14px; color: ${isMatching && confidence >= 50 ? '#2d6a2d' : '#777'}; margin-top: 4px; font-weight: ${isMatching && confidence >= 50 ? 'bold' : 'normal'}">${confidence.toFixed(1)}% zeker</div>
+        ${isMatching ? `<div style="text-align: center; font-size: 12px; color: #2d6a2d; margin-top: 6px;">✓ Correct! (${(matchTimer / 2000 * 100).toFixed(0)}%)</div>` : ''}
     `;
 }
 
@@ -149,6 +149,7 @@ function initializeCharacter() {
 
 function displayCharacter() {
     const character = shuffledSet[currentIndex];
+    currentRequestedRomaji = character.romaji;
     document.querySelector('.prompt').innerHTML =
         `Welk karakter is dit?<br><strong style="font-size:80px;display:block;margin:20px 0;">${character.romaji}</strong>`;
 }
@@ -212,7 +213,6 @@ function nextCharacter() {
         currentIndex = 0;
     }
     displayCharacter();
-    startTimer();
 }
 
 document.addEventListener('DOMContentLoaded', async function () {
@@ -231,7 +231,8 @@ document.addEventListener('DOMContentLoaded', async function () {
     waitForTmImage();
 
     document.querySelector('.next-btn').addEventListener('click', function () {
-        clearInterval(timerInterval);
-        nextCharacter();
+        if (gameActive) {
+            nextCharacter();
+        }
     });
 });
